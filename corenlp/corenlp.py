@@ -43,9 +43,9 @@ except ImportError:
 VERBOSE = False
 STATE_START, STATE_TEXT, STATE_WORDS, STATE_TREE, STATE_DEPENDENCY, STATE_COREFERENCE = 0, 1, 2, 3, 4, 5
 WORD_PATTERN = re.compile('\[([^\]]+)\]')
-CR_PATTERN = re.compile(r"\((\d*),(\d)*,\[(\d*),(\d*)\)\) -> \((\d*),(\d)*,\[(\d*),(\d*)\)\), that is: \"(.*)\" -> \"(.*)\"")
+CR_PATTERN = re.compile(r"\((\d*),(\d)*,\[(\d*),(\d*)\]\) -> \((\d*),(\d)*,\[(\d*),(\d*)\]\), that is: \"(.*)\" -> \"(.*)\"")
 
-DIRECTORY = "stanford-corenlp-full-2013-06-20"
+DIRECTORY = "/home/shobhit/archive/packages/stanford-corenlp-full-2015-12-09"
 
 
 class bc:
@@ -156,9 +156,14 @@ def parse_parser_results(text):
     lines = unidecode(text.decode('utf-8')).split("\n")
     for index, line in enumerate(lines):
         line = line.strip()
-
         if line.startswith("Sentence #"):
-            sentence = {'words': [], 'parsetree': [], 'dependencies': []}
+            sentiment = None
+            if "sentiment" in line:
+                index = line.index("sentiment: ")
+                length = len("sentiment: ")
+                sentiment = line[(index+length):-2]
+            sentence = {'sentiment': sentiment, 'words': [], 'parsetree': [],
+                        'dependencies': []}
             results["sentences"].append(sentence)
             state = STATE_TEXT
 
@@ -171,7 +176,7 @@ def parse_parser_results(text):
                 raise ParserError('Parse error. Could not find "[Text=" in: %s' % line)
             for s in WORD_PATTERN.findall(line):
                 sentence['words'].append(parse_bracketed(s))
-            if not lines[index + 1].startswith("[Text="):
+            if len(lines) >= index + 2 and not lines[index + 1].startswith("[Text="):
                 state = STATE_DEPENDENCY
                 # skipping TREE because the new depparse annotator doesn't make a parse tree
 
@@ -254,7 +259,7 @@ def parse_parser_xml_results(xml, file_name="", raw_output=False):
     return results
 
 
-def parse_xml_output(input_dir, corenlp_path=DIRECTORY, memory="3g", raw_output=False, properties='default.properties'):
+def parse_xml_output(input_dir, corenlp_path=DIRECTORY, memory="4g", raw_output=False, properties='default.properties'):
     """Because interaction with the command-line interface of the CoreNLP
     tools is limited to very short text bits, it is necessary to parse xml
     output"""
@@ -312,29 +317,31 @@ class StanfordCoreNLP:
                 searchwindowsize=80)
         else:
             self.corenlp = pexpect.spawn(self.start_corenlp, maxread=8192,
-                searchwindowsize=80)
+                searchwindowsize=80, timeout=120)
 
         # show progress bar while loading the models
         if VERBOSE:
-            widgets = ['Loading Models: ', Fraction()]
-            pbar = ProgressBar(widgets=widgets, maxval=5, force_update=True).start()
+            pass
+            # widgets = ['Loading Models: ', Fraction()]
+            # pbar = ProgressBar(widgets=widgets, maxval=5, force_update=True).start()
             # Model timeouts:
             # pos tagger model (~5sec)
             # NER-all classifier (~33sec)
             # NER-muc classifier (~60sec)
             # CoNLL classifier (~50sec)
             # PCFG (~3sec)
-            timeouts = [20, 200, 600, 600, 20]
-            for i in xrange(5):
-                self.corenlp.expect("done.", timeout=timeouts[i])  # Load model
-                pbar.update(i + 1)
-            self.corenlp.expect("Entering interactive shell.")
-            pbar.finish()
+            # timeouts = [20, 200, 600, 600, 20]
+            # for i in xrange(5):
+            #     self.corenlp.expect("done.", timeout=timeouts[i])  # Load model
+            #     # pbar.update(i + 1)
+            # self.corenlp.expect("Entering interactive shell.")
+            # pbar.finish()
 
         # interactive shell
         self.corenlp.expect("\nNLP> ")
+        print "Done"
 
-    def __init__(self, corenlp_path=DIRECTORY, memory="3g", properties='default.properties', serving=False):
+    def __init__(self, corenlp_path=DIRECTORY, memory="4g", properties='default.properties', serving=False):
         """
         Checks the location of the jar files.
         Spawns the server as a process.
@@ -494,8 +501,8 @@ if __name__ == '__main__':
     """
     from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
     parser = optparse.OptionParser(usage="%prog [OPTIONS]")
-    parser.add_option('-p', '--port', default='8080',
-                      help='Port to serve on (default 8080)')
+    parser.add_option('-p', '--port', default='9000',
+                      help='Port to serve on (default 9000)')
     parser.add_option('-H', '--host', default='127.0.0.1',
                       help='Host to serve on (default localhost; 0.0.0.0 to make public)')
     parser.add_option('-q', '--quiet', action='store_false', default=True, dest='verbose',
