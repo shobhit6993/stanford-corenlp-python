@@ -2,7 +2,13 @@
 
 This is a Wordseer-specific fork of Dustin Smith's [stanford-corenlp-python](https://github.com/dasmith/stanford-corenlp-python), a Python interface to [Stanford CoreNLP](http://nlp.stanford.edu/software/corenlp.shtml). It can either use as python package, or run as a JSON-RPC server.
 
-## Edited
+## Additional fixes in this fork
+   * Partially works with Stanford CoreNLP v3.6.0
+   * Fixed regex for coref output
+   * Parse and add sentiment output in JSON
+   * ParseTree and Dependencies parsing still broken.
+
+## Original Edits:
    * Tested only with the current annotator configuration: not a general-purpose wrapper
    * Update to Stanford CoreNLP v3.5.2
    * Added multi-threaded load balancing
